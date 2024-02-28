@@ -1,0 +1,6 @@
+2024-02-20 15:18:42,137 - ERROR - Task was destroyed but it is pending!
+task: <Task cancelling name='Task-2' coro=<Connection.run() running at /Users/samrussell/Scraper/facebook-marketplace-scraper/venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:275> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[gather.<locals>._done_callback() at /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/tasks.py:767]>
+2024-02-23 09:17:55,521 - ERROR - Task was destroyed but it is pending!
+task: <Task cancelling name='Task-2' coro=<Connection.run() running at /Users/samrussell/Scraper/facebook-marketplace-scraper/venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:275> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[gather.<locals>._done_callback() at /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/tasks.py:767]>
+2024-02-23 20:21:23,859 - ERROR - Task was destroyed but it is pending!
+task: <Task cancelling name='Task-2' coro=<Connection.run() running at /Users/samrussell/Scraper/facebook-marketplace-scraper/venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:275> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[gather.<locals>._done_callback() at /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/tasks.py:767]>
