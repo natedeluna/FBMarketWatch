@@ -1,32 +1,20 @@
 # Facebook Marketplace Crawler.
-from playwright.sync_api import sync_playwright
-from playwright.async_api import async_playwright
-import os
+from playwright.sync_api import sync_playwright, async_playwright
 from dotenv import load_dotenv
-import time
-import datetime
-import pytz
+import time, datetime, pytz
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, FastAPI
-import json
-import requests
-import uvicorn
-import sys
+import json, requests
+import uvicorn, sys
 from termcolor import colored
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
 from logging.handlers import RotatingFileHandler
-import random
-import asyncio
-import re
-from random import random
-from random import randint
-from random import uniform
-from random import choice
+import random, asyncio, re
+from random import random, randint, uniform, choice
 from urllib.parse import quote
-import requests
 
 load_dotenv()
 
@@ -36,53 +24,23 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-execution_handler = RotatingFileHandler('execution.log')
-execution_formatter = logging.Formatter('%(asctime)s - %(message)s')
-execution_handler.setFormatter(execution_formatter)
-
-execution_logger = logging.getLogger('execution_logger')
-execution_logger.setLevel(logging.INFO)
-execution_logger.addHandler(execution_handler)
-
-error_handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=5)
-error_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-error_handler.setFormatter(error_formatter)
-error_handler.setLevel(logging.ERROR)
-
-logging.getLogger().addHandler(error_handler)
 
 
 def return_ip_information():
-    # Initialize the session using Playwright.
     with sync_playwright() as p:
-        # Open a new browser page.
         browser = p.chromium.launch()
         page = browser.new_page()
-        # Navigate to the URL.
         page.goto('https://www.ipburger.com/')
-        # Wait for the page to load.
-        time.sleep(5)
-        # Get the HTML content of the page.
         html = page.content()
-        # Beautify the HTML content.
         soup = BeautifulSoup(html, 'html.parser')
-        # Find the IP address.
         ip_address = soup.find('span', id='ipaddress1').text
-        # Find the country.
         country = soup.find('strong', id='country_fullname').text
-        # Find the location.
         location = soup.find('strong', id='location').text
-        # Find the ISP.
         isp = soup.find('strong', id='isp').text
-        # Find the Hostname.
         hostname = soup.find('strong', id='hostname').text
-        # Find the Type.
         ip_type = soup.find('strong', id='ip_type').text
-        # Find the version.
         version = soup.find('strong', id='version').text
-        # Close the await browser.
         browser.close()
-        # Return the IP information as JSON.
         return {
             'ip_address': ip_address,
             'country': country,
@@ -407,10 +365,8 @@ def email_listings(listings, query):
     body = generate_email_body(listings)
     if (len(body) == 0): return
     
-    load_dotenv()
-    # Set up the SMTP server.
     smtp_server = "smtp-mail.outlook.com"
-    port = 587  # For starttls
+    port = 587
     username = os.getenv('OUTLOOK_CLIENT_EMAIL')
     password = os.getenv('OUTLOOK_CLIENT_PASSWORD')
     to_email_main = "Thatfloridaman1234@gmail.com"
@@ -427,8 +383,6 @@ def email_listings(listings, query):
     msg.add_header('Importance', 'High')
     msg.add_header('X-MSMail-Priority', 'High')
 
-
-    # Send the email.
     server = smtplib.SMTP(smtp_server, port)
     server.starttls()
     server.login(username, password)
@@ -441,7 +395,6 @@ def email_listings(listings, query):
     print(colored('Emailed listings!', 'green'))
 
 def email_error_to_dev(error):
-    load_dotenv()
     smtp_server = "smtp-mail.outlook.com"
     port = 587  # For starttls
     username = os.getenv('OUTLOOK_CLIENT_EMAIL')
@@ -628,12 +581,7 @@ async def main():
     print(colored('Internet connection established', 'green'))
     
     initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-    load_dotenv()
-    print(colored('Playwright runtime starting', 'cyan'))
     async with async_playwright() as p:
-        # if check_recent_scrape_count() == True:
-        # else:
-        #     print("Using our ip")
         parsed_ips = [parse_ip(os.getenv(f"RESIDENTIAL_IP{i}")) for i in range(1, 10) if os.getenv(f"RESIDENTIAL_IP{i}")]
         
         selected_ip = choice(parsed_ips)
@@ -685,10 +633,6 @@ async def main():
         ct_time_zone = pytz.timezone('America/Chicago')
         ct_time = now_utc.astimezone(ct_time_zone)
         execution_logger.info(f"Executed at (CT): {ct_time}")
-
-# async def main():
-#     print(colored('running','cyan'))
-#     time.sleep(10)
 
 
 asyncio.run(main())

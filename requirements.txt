@@ -1,10 +1,10 @@
+playwright==1.40.0
+pytz
 beautifulsoup4==4.12.2
 fastapi==0.108.0
 Pillow==10.2.0
-playwright==1.40.0
-Requests==2.31.0
+requests==2.31.0
 streamlit==1.30.0
 uvicorn[standard]==0.25.0
 python-dotenv
 termcolor
-pytz
