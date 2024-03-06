@@ -8,5 +8,3 @@ class EmailDispatcher:
     
     async def send_email(self, recipient, listing):
         message = EmailMessage()
-
-        

@@ -1,5 +1,5 @@
-# Facebook Marketplace Crawler.
-from playwright.sync_api import sync_playwright, async_playwright
+from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
 import time, datetime, pytz
 from bs4 import BeautifulSoup
@@ -15,6 +15,7 @@ from logging.handlers import RotatingFileHandler
 import random, asyncio, re
 from random import random, randint, uniform, choice
 from urllib.parse import quote
+import os
 
 load_dotenv()
 
@@ -634,6 +635,21 @@ async def main():
         ct_time = now_utc.astimezone(ct_time_zone)
         execution_logger.info(f"Executed at (CT): {ct_time}")
 
+async def run():
+    load_dotenv()
+    async with async_playwright() as p:
+        proxy_config={
+            'server': 'http://geo.iproyal.com:12321',
+            'username': os.getenv('IPROYAL_USERNAME'),
+            'password': os.getenv('IPROYAL_PASSWORD'),
+        }
+        
+        proxy=proxy_config
+        browser = await p.chromium.launch(headless=False, proxy=proxy_config)
+        page = await browser.new_page()
+        while True:  # Infinite loop
+            await asyncio.sleep(1)  # Sleep for a while to prevent high CPU usage
+    
 
-asyncio.run(main())
+asyncio.run(run())
 
