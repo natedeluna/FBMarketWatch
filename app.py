@@ -19,7 +19,6 @@ import os
 
 load_dotenv()
 
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -104,12 +103,10 @@ async def scrape_through_listings (page, query, browser, scroll, expand_search_r
         print(colored('Finished scrolling', 'green'))
         
     html = await page.content()
-
-    print(colored('Getting the HTML content of the page.', 'cyan'))
     soup = BeautifulSoup(html, 'html.parser')
     parsed = {}
-    listings = soup.find_all('div', class_='x9f619 x78zum5 x1r8uery xdt5ytf x1iyjqo2 xs83m0k x1e558r4 x150jy0e x1iorvi4 xjkvuk6 xnpuxes x291uyu x1uepa24')
-    email_error_sent = False
+    top_level_listings_container = soup.find('div', class_='xkrivgy x1gryazu x1n2onr6')
+    listings = top_level_listings_container.find_all('div', class_='x9f619 x78zum5 x1r8uery xdt5ytf x1iyjqo2 xs83m0k x1e558r4 x150jy0e x1iorvi4 xjkvuk6 xnpuxes x291uyu x1uepa24')
     total_found = 0
     for listing in listings:
         if not list(listing.children):
@@ -151,10 +148,6 @@ async def scrape_through_listings (page, query, browser, scroll, expand_search_r
                 pass
         except Exception as e:
             print(f"An error occurred: {e}")
-            if (email_error_sent == False):
-                email_error_to_dev(e)
-                email_error_sent = True
-                logging.error('Class name most likely changed %s', str(e))
     
     remove_old_listings()
     print(colored(f'TOTAL LISTINGS SCRAPED - {total_found}', 'green'))
@@ -422,7 +415,7 @@ def email_error_to_dev(error):
 def generate_email_body(listings):
     body_html = ''
     for key,value in listings.items():
-        pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago)\b'
+        pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago|seconds ago)\b'
         if re.search(pattern, value["listed_time"]):
             print(colored('Listing found minutes ago!','green'))
             body_html += """
@@ -478,93 +471,6 @@ def check_internet_connection():
         logging.error('Internet connection timed out: %s', str(e))
         return {'status': False, 'error': 'Connection timed out'}
 
-QUERYS = [
-    {
-        "type": "Dump Trailer",
-        "max_price": 9500,
-        "city": "108068345888279",
-        "scroll": True,
-        "change_search_radius": True,
-    },
-    {
-        "type": "Enclosed Trailer",
-        "max_price": 7000,
-        "city": "108068345888279",
-        "scroll": True,
-        "change_search_radius": True,
-    },
-    {
-        "type": "Dump Trailer",
-        "max_price": 9000,
-        "city": "orlando",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "Dump Trailer",
-        "max_price": 9000,
-        "city": "tampa",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "Big tex",
-        "max_price": 9500,
-        "city": "108068345888279",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "triple crown trailer",
-        "max_price": 9500,
-        "city": "108068345888279",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "triple crown trailer",
-        "max_price": 9500,
-        "city": "tampa",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "dump trailer",
-        "max_price": 9500,
-        "city": "111851895506967",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "dump trailer",
-        "max_price": 9500,
-        "city": "106149149416964",
-        "scroll": False,
-        "change_search_radius": False,
-    },
-    {
-        "type": "enclosed trailer",
-        "max_price": 9500,
-        "city": "106149149416964",
-        "scroll": False,
-        "change_search_radius": True,
-    },
-    {
-        "type": "dump trailer",
-        "max_price": 9500,
-        "city": "108253272536825",
-        "scroll": False,
-        "change_search_radius": True,
-    },
-    {
-        "type": "dump trailer",
-        "max_price": 9500,
-        "city": "108338092519760",
-        "scroll": True,
-        "change_search_radius": True,
-    },
-]
-
 def parse_ip(env_var_value):
     ip_address, port, username, password = env_var_value.split(":")
     return {
@@ -619,7 +525,7 @@ async def main():
             expand_search_radius = query_dict["change_search_radius"]
             max_price = quote(str(query_dict["max_price"]))
             
-            marketplace_url = f'https://www.facebook.com/marketplace/{city}/search/?query={query}&daysSinceListed=1&sortBy=creation_time_descend&minPrice=500&maxPrice={max_price}&exact=false'
+            marketplace_url = f'https://www.facebook.com/marketplace/{city}/search/?query={query}&daysSinceListed=7&sortBy=creation_time_descend&minPrice=500&maxPrice={max_price}&exact=false'
             print(colored(f'Searching for{query} in {city}', 'cyan'))
             time.sleep(1)
             await page.goto(marketplace_url, wait_until='networkidle')
@@ -630,26 +536,7 @@ async def main():
 
         await browser.close()
         
-        now_utc = datetime.datetime.now(datetime.timezone.utc)
-        ct_time_zone = pytz.timezone('America/Chicago')
-        ct_time = now_utc.astimezone(ct_time_zone)
-        execution_logger.info(f"Executed at (CT): {ct_time}")
-
-async def run():
-    load_dotenv()
-    async with async_playwright() as p:
-        proxy_config={
-            'server': 'http://geo.iproyal.com:12321',
-            'username': os.getenv('IPROYAL_USERNAME'),
-            'password': os.getenv('IPROYAL_PASSWORD'),
-        }
-        
-        proxy=proxy_config
-        browser = await p.chromium.launch(headless=False, proxy=proxy_config)
-        page = await browser.new_page()
-        while True:  # Infinite loop
-            await asyncio.sleep(1)  # Sleep for a while to prevent high CPU usage
     
 
-asyncio.run(run())
+asyncio.run(main())
 

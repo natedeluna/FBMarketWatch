@@ -1,0 +1,77 @@
+
+{
+    "Trailers": [
+        {
+            "search_phrase": "triple crown",
+            "max_price": 9500,
+            "fb_url_area_code": "108465515845375",
+            "city": "Four Corners, Florida",
+            "should_scroll": false,
+            "search_radius": 40,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "dump trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "108068345888279",
+            "city": "Gainesville, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "enclosed trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "104111666293317",
+            "city": "Lutz, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "dump trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "104002129636034",
+            "city": "Stuart, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "enclosed trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "108251189197758",
+            "city": "West Palm Beach, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "dump trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "108338092519760",
+            "city": "Bonita Springs, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "enclosed trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "108338092519760",
+            "city": "Bonita Springs, Florida",
+            "should_scroll": true,
+            "search_radius": 250,
+            "service_area": "Central Florida"
+        },
+        {
+            "search_phrase": "dump trailer",
+            "max_price": 9500,
+            "fb_url_area_code": "108085075886241",
+            "city": "Palm Coast, Florida",
+            "should_scroll": true,
+            "search_radius": 100,
+            "service_area": "Central Florida"
+        }
+    ]
+}
