@@ -9,8 +9,7 @@ from listings_builder import ListingsBuilder
 from email_util import EmailDispatcher
 
 class ScrapeTask:
-    def __init__(self, browser_instance:any, page:any, query:dict):
-        
+    def __init__(self, browser_instance:any, page:any, query:dict):     
         self.marketplace_url = (
             f'https://www.facebook.com/marketplace/{query["fb_url_area_code"]}/search/?'
             f'query={query["search_phrase"]}&'
@@ -21,15 +20,20 @@ class ScrapeTask:
         )
         
         self.query = query
+        
         self.browser = browser_instance
+        
         self.page = page
+
         self.select = self.load_class_selectors()
 
     async def run(self):
+        await self.page.goto(self.marketplace_url, wait_until='networkidle')
+
         if await self.check_for_immediate_login_reroute():
             sys.exit(1)
 
-        await self.page.goto(self.marketplace_url, wait_until='networkidle')
+        await self.initial_login_popup_exit()
 
         if self.query["search_radius"] > 40:
             await self.set_search_radius()
@@ -54,7 +58,6 @@ class ScrapeTask:
             final_listings = await self.get_listing_time_submitted(sanitized_new_listings)
             email_dispatcher = EmailDispatcher(final_listings)
             await email_dispatcher.run()
-
         
     async def get_listing_time_submitted(self, listings:dict):
         pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago|seconds ago)\b'
@@ -103,6 +106,19 @@ class ScrapeTask:
             
         return False
     
+    async def initial_login_popup_exit(self):
+        login_popup_class_selectors = self.format_for_query_selector(self.select["login_popup_exitable"])
+
+        if await self.page.query_selector(login_popup_class_selectors) is not None:
+            time.sleep(1)
+            await self.page.keyboard.press('Enter')
+            return
+            exit_class_selectors = self.format_for_query_selector(self.select["login_popup_exitable"])
+            
+            exit_el = await self.page.wait_for_selector(exit_class_selectors, state='attached')
+            await exit_el.dispatch_event('click')
+            print('clickerd')
+
     async def scroll_to_load_more_results(self):
         viewport_size = self.page.viewport_size
         x_pos = int(viewport_size['width'] * 5 / 6)
@@ -130,13 +146,16 @@ class ScrapeTask:
                 break
 
     async def set_search_radius(self):
-        class_selectors = self.format_for_query_selector(self.select["search_radius_input"])
+        print('searching')
+        search_radius_class_selectors = self.format_for_query_selector(self.select["search_radius_input"])
 
         try:
-            search_radius = await self.page.query_selector(class_selectors)
-
+            search_radius = await self.page.wait_for_selector(search_radius_class_selectors)
+            print(search_radius)
             await search_radius.click()
-            
+
+            self.pause_for_30("clicked search radius")
+
             await self.check_for_mini_login_popup()
 
             for _ in range(10):
@@ -186,7 +205,7 @@ class ScrapeTask:
             return e
         pass
 
-    def format_for_query_selector(input_string):
+    def format_for_query_selector(self, input_string):
         return "." + input_string.replace(" ", ".")
     
     async def check_for_immediate_login_reroute(self):
@@ -196,5 +215,8 @@ class ScrapeTask:
     def load_class_selectors(self):
         with open("fbm_class_selectors.json", "r") as file:
             data = json.load(file)
-            print(data["listing_card_container"])
             return data
+
+    def pause_for_30(self,print_statement:str):
+        time.sleep(30)
+        print(colored(print_statement, 'green'))

@@ -20,9 +20,10 @@ class EmailDispatcher:
             return e
 
     async def run(self):
-        self.generate_html_email()
+        print(self.listings)
+        # self.generate_html_email()
 
-    def generate_html_email(self):
+    # def generate_html_email(self):
         
 
     async def send_email(self, recipient, listing):
