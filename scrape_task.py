@@ -54,12 +54,14 @@ class ScrapeTask:
 
         sanitized_new_listings = listings_builder.build()
 
+        print(colored(f"Sanitized new listings: {len(sanitized_new_listings)}", 'green'))
+        
         if len(sanitized_new_listings)>0 and len(sanitized_new_listings)<8:
-            final_listings = await self.get_listing_time_submitted(sanitized_new_listings)
+            final_listings = await self.open_listing_url(sanitized_new_listings)
             email_dispatcher = EmailDispatcher(final_listings)
             await email_dispatcher.run()
         
-    async def get_listing_time_submitted(self, listings:dict):
+    async def open_listing_url(self, listings:dict):
         pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago|seconds ago)\b'
 
         for key, value in listings.items():
@@ -112,12 +114,6 @@ class ScrapeTask:
         if await self.page.query_selector(login_popup_class_selectors) is not None:
             time.sleep(1)
             await self.page.keyboard.press('Enter')
-            return
-            exit_class_selectors = self.format_for_query_selector(self.select["login_popup_exitable"])
-            
-            exit_el = await self.page.wait_for_selector(exit_class_selectors, state='attached')
-            await exit_el.dispatch_event('click')
-            print('clickerd')
 
     async def scroll_to_load_more_results(self):
         viewport_size = self.page.viewport_size
@@ -146,15 +142,14 @@ class ScrapeTask:
                 break
 
     async def set_search_radius(self):
-        print('searching')
+        time.sleep(randint(1, 3))
+        
         search_radius_class_selectors = self.format_for_query_selector(self.select["search_radius_input"])
 
         try:
             search_radius = await self.page.wait_for_selector(search_radius_class_selectors)
             print(search_radius)
             await search_radius.click()
-
-            self.pause_for_30("clicked search radius")
 
             await self.check_for_mini_login_popup()
 

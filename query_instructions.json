@@ -6,7 +6,7 @@
             "max_price": 9500,
             "fb_url_area_code": "108465515845375",
             "city": "Four Corners, Florida",
-            "should_scroll": false,
+            "should_scroll": true,
             "search_radius": 40,
             "service_area": "Central Florida"
         },
