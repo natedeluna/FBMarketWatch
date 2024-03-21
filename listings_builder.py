@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from filelock import FileLock, Timeout
 import json
 import time
+from termcolor import colored
 
 class ListingsBuilder:
     def __init__(self, html:str, class_selectors:dict):
@@ -13,11 +14,9 @@ class ListingsBuilder:
         self.new_listings = {}
 
     def get_raw_listings(self):
-        # Gets relevant lisitngs from html
         soup = BeautifulSoup(self.html, 'html.parser')
         
-        relevant_listings_container = soup.find("div", class_=self.select["relevant_results_container"])
-        listings = relevant_listings_container.find_all("div", class_=self.select["listing_card_container"])
+        listings = soup.find_all("div", class_=self.select["listing_card_container"])
 
         for card in listings:
             if list(card.children):
@@ -50,8 +49,10 @@ class ListingsBuilder:
                             "date_scraped": time.time()
                         }
                     })
+        print(colored("Raw lisitngs total: " + str(self.raw_listings_total), "green"))
 
     def filter_out_keywords(self):
+        filtered_out_count = 0
         keywords = {
             'Chevy', 'chevy', 'Ford', 
             'ford', 'rental', 'Rental', 
@@ -65,10 +66,10 @@ class ListingsBuilder:
         for key in list(self.new_listings.keys()):
             listing = self.new_listings[key]
             if any(word in listing["title"] for word in keywords):
+                filtered_out_count += 1
                 del self.new_listings[key]
     
     def check_against_existing_listings(self):
-        # Sanitizes raw lisitngs down to only the new listings 
         lock = FileLock("listings.json.lock")
         try:
             with lock.acquire(timeout=10):
@@ -78,14 +79,13 @@ class ListingsBuilder:
         except (FileNotFoundError, Timeout) as e:
             return e
         
-        exisitng_listings_keys = existing_listings_store.keys()
+        exisitng_listings_keys = set(existing_listings_store.keys())
 
         for key, value in self.raw_listings.items():
             if key not in exisitng_listings_keys:
                 self.new_listings.update({key: value})
 
     def update_existing_listings(self):
-        # Updates the existing listings.json store with the new listings
         lock = FileLock("listings.json.lock")
         try:
             with lock.acquire(timeout=10):

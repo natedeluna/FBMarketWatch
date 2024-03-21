@@ -7,6 +7,7 @@ import re
 from random import random, randint, uniform, choice
 from listings_builder import ListingsBuilder
 from email_util import EmailDispatcher
+import asyncio
 
 class ScrapeTask:
     def __init__(self, browser_instance:any, page:any, query:dict):     
@@ -27,7 +28,10 @@ class ScrapeTask:
 
         self.select = self.load_class_selectors()
 
+        print(colored(f"Scrape task for {self.query['search_phrase']} initialized", 'cyan'))
+
     async def run(self):
+        print(self.marketplace_url)
         await self.page.goto(self.marketplace_url, wait_until='networkidle')
 
         if await self.check_for_immediate_login_reroute():
@@ -48,20 +52,25 @@ class ScrapeTask:
         listings_builder  = ListingsBuilder(html, self.select)
 
         listings_builder.get_raw_listings()
+
+        listings_builder.check_against_existing_listings()
+
         listings_builder.update_existing_listings()
+        
         listings_builder.remove_old_listings()
+        
         listings_builder.filter_out_keywords()
 
         sanitized_new_listings = listings_builder.build()
-
-        print(colored(f"Sanitized new listings: {len(sanitized_new_listings)}", 'green'))
         
+        print(colored(f"=={len(sanitized_new_listings)}== new listings", 'green'))
+        return
         if len(sanitized_new_listings)>0 and len(sanitized_new_listings)<8:
-            final_listings = await self.open_listing_url(sanitized_new_listings)
+            final_listings = await self.open_listing_urls(sanitized_new_listings)
             email_dispatcher = EmailDispatcher(final_listings)
             await email_dispatcher.run()
         
-    async def open_listing_url(self, listings:dict):
+    async def open_listing_urls(self, listings:dict):
         pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago|seconds ago)\b'
 
         for key, value in listings.items():
@@ -79,14 +88,6 @@ class ScrapeTask:
                     value.update({"time_submitted": time_submitted})
 
         return listings
-
-    async def get_listings(self):
-        class_selectors = self.format_for_query_selector(self.select["listing_card_container"])
-        listing_card_container = await self.page.query_selector(class_selectors)
-        listing_cards = await listing_card_container.query_selector_all("div")
-
-        for card in listing_cards:
-            await self.get_listing_info(card)
 
     async def check_for_mini_login_popup(self):
         pop_up_class_selectors = self.format_for_query_selector(self.select["mini_login_popup_exitable"])
@@ -111,45 +112,63 @@ class ScrapeTask:
     async def initial_login_popup_exit(self):
         login_popup_class_selectors = self.format_for_query_selector(self.select["login_popup_exitable"])
 
-        if await self.page.query_selector(login_popup_class_selectors) is not None:
+        hasPopup = await self.page.query_selector(login_popup_class_selectors)
+        if hasPopup:
             time.sleep(1)
-            await self.page.keyboard.press('Enter')
+            exit_popup_selectors = self.format_for_query_selector(self.select["login_popup_exit"])
+
+            await self.page.click(exit_popup_selectors)
+
+            print(colored("Initial login popup exited", 'magenta'))
 
     async def scroll_to_load_more_results(self):
         viewport_size = self.page.viewport_size
+
         x_pos = int(viewport_size['width'] * 5 / 6)
         y_pos = int(viewport_size['height'] / 2)
 
         await self.page.mouse.move(x_pos, y_pos)
 
-        time.sleep(randint(1,4))
+        time.sleep(randint(2,4))
 
         start_time = time.time()
-        scroll_duration = randint(12, 15)
+        
+        scroll_duration = randint(12, 17)
+
+        print(colored(f"Scrolling for {scroll_duration} seconds", 'magenta'))
 
         while time.time() - start_time < scroll_duration:
             scroll_distance = randint(69, 111)
-            sleep_time = uniform(0.05, 0.5)
+            sleep_time = uniform(0.1, 0.6)
 
             if random() < 0.03:
                 scroll_distance = -scroll_distance 
+
+            last_scroll_position = await self.page.evaluate('window.scrollY')
                 
             await self.page.mouse.wheel(0, scroll_distance)
-            
-            time.sleep(sleep_time)
 
-            if await self.check_for_login_hard_block():
+            time.sleep(sleep_time)
+            
+            new_scroll_position = await self.page.evaluate('window.scrollY')
+
+            if last_scroll_position == new_scroll_position and scroll_distance > 0:
+                print(colored(f'Reached end of page after {time.time() - start_time} seconds', 'magenta'))
+                break
+            elif await self.check_for_login_hard_block():
                 break
 
     async def set_search_radius(self):
         time.sleep(randint(1, 3))
-        
+
         search_radius_class_selectors = self.format_for_query_selector(self.select["search_radius_input"])
 
         try:
             search_radius = await self.page.wait_for_selector(search_radius_class_selectors)
-            print(search_radius)
+
             await search_radius.click()
+
+            time.sleep(2)
 
             await self.check_for_mini_login_popup()
 
@@ -195,10 +214,10 @@ class ScrapeTask:
                     time.sleep(2)
                     await self.check_for_mini_login_popup()
                     break
-
+        
+            print(colored("Search radius set", 'magenta'))
         except Exception as e:
             return e
-        pass
 
     def format_for_query_selector(self, input_string):
         return "." + input_string.replace(" ", ".")
@@ -211,7 +230,3 @@ class ScrapeTask:
         with open("fbm_class_selectors.json", "r") as file:
             data = json.load(file)
             return data
-
-    def pause_for_30(self,print_statement:str):
-        time.sleep(30)
-        print(colored(print_statement, 'green'))

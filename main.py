@@ -3,9 +3,12 @@ from random import random, randint, uniform, choice
 import os
 from dotenv import load_dotenv
 from termcolor import colored
+from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 import json
 import asyncio
+import time
 from scrape_task import ScrapeTask
 
 file_lock = Lock()
@@ -56,6 +59,7 @@ class Browser:
 
     async def run(self):
        async with async_playwright() as p:
+            # browser = await p.chromium.launch(headless=self.browser_config["headless"])
             browser = await p.chromium.launch(headless=self.browser_config["headless"], proxy=self.load_proxy())
             
             screen_size = p.devices['Desktop Chrome']['viewport']
@@ -70,9 +74,6 @@ class Browser:
                 await task.run()
 
             await browser.close()
-
-    
-
 
 # ************START***************
 MAIN_THREAD = Browser("Main")
