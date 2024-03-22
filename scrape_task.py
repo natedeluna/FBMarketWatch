@@ -1,10 +1,9 @@
-from filelock import FileLock
 import json
 import time
 from termcolor import colored
 import sys
 import re
-from random import random, randint, uniform, choice
+from random import random, randint, uniform
 from listings_builder import ListingsBuilder
 from email_util import EmailDispatcher
 import asyncio
@@ -28,10 +27,9 @@ class ScrapeTask:
 
         self.select = self.load_class_selectors()
 
-        print(colored(f"Scrape task for {self.query['search_phrase']} initialized", 'cyan'))
+        print(colored(f"Scanning for {self.query['search_phrase']}", 'cyan'))
 
     async def run(self):
-        print(self.marketplace_url)
         await self.page.goto(self.marketplace_url, wait_until='networkidle')
 
         if await self.check_for_immediate_login_reroute():
@@ -53,8 +51,6 @@ class ScrapeTask:
 
         listings_builder.get_raw_listings()
 
-        listings_builder.check_against_existing_listings()
-
         listings_builder.update_existing_listings()
         
         listings_builder.remove_old_listings()
@@ -64,14 +60,18 @@ class ScrapeTask:
         sanitized_new_listings = listings_builder.build()
         
         print(colored(f"=={len(sanitized_new_listings)}== new listings", 'green'))
-        return
+
         if len(sanitized_new_listings)>0 and len(sanitized_new_listings)<8:
-            final_listings = await self.open_listing_urls(sanitized_new_listings)
-            email_dispatcher = EmailDispatcher(final_listings)
-            await email_dispatcher.run()
+            final_listings = await self.get_listing_times(sanitized_new_listings)
+
+            if len(final_listings) > 0:
+                email_dispatcher = EmailDispatcher(final_listings)
+
+                await email_dispatcher.run()
         
-    async def open_listing_urls(self, listings:dict):
+    async def get_listing_times(self, listings:dict):
         pattern = r'\b(a minute ago|2 minutes ago|3 minutes ago|4 minutes ago|5 minutes ago|6 minutes ago|7 minutes ago|8 minutes ago|seconds ago)\b'
+        keys_to_delete = []
 
         for key, value in listings.items():
             await self.page.goto(value["post_url"], wait_until='networkidle')
@@ -80,12 +80,22 @@ class ScrapeTask:
             meta_section = await self.page.wait_for_selector(post_meta_section_selectors)
 
             time_submitted_selectors = self.format_for_query_selector(self.select["listing_page_time_submitted"])
-            time_submitted = await meta_section.query_selector(time_submitted_selectors)
+            time_submitted_el = await meta_section.query_selector(time_submitted_selectors)
+            
+            if time_submitted_el is not None:
+                time_submitted:str = await time_submitted_el.text_content()
 
-            if time_submitted:
-                time_submitted = await time_submitted.text_content()
+                print((colored(f'Posted {time_submitted}','light_green')))
+
                 if re.search(pattern, time_submitted):
-                    value.update({"time_submitted": time_submitted})
+                    print(colored('-adding-', 'light_grey'))
+
+                    listings[key]["time_submitted"]= time_submitted
+                else:
+                    keys_to_delete.append(key)
+
+        for key in keys_to_delete:
+            del listings[key]
 
         return listings
 

@@ -1,6 +1,3 @@
-import asyncio
-import aiosmtplib
-from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
@@ -16,7 +13,7 @@ class EmailDispatcher:
         self.listings = listings
         self.email_body = self.generate_html_email()
     
-    def load_recipient_emails() -> list:
+    def load_recipient_emails(self) -> list:
         lock = FileLock("recipients.txt.lock")
         try:
             with lock.acquire(timeout=10):
@@ -42,13 +39,15 @@ class EmailDispatcher:
             )
 
             email_client_index += 1
+        print(colored('==EMAILED ALL RECIPIENTS==', 'green'))
 
     async def send_email(
         self, 
         email_client_user:str,
         email_client_password:str,
         email_recipient:str,
-    ):
+    ):  
+        print(f'Emailing{email_recipient} from {email_client_user}/ {email_client_password}')
         subject = f"New Facebook Marketplace Listing(s)"
         # Set up the SMTP server.
         smtp_server = "smtp-mail.outlook.com"
@@ -79,12 +78,7 @@ class EmailDispatcher:
         all_recipients = [msg['To']]
 
         res = server.sendmail(username, all_recipients, text)
-
-        if not res == {}:
-            print(colored('Error sending email', 'red'))
-            print(colored(res, 'red'))
-        else:
-            print(colored('==EMAILED LISTINGS==', 'green'))
+        print(colored(res, 'red'))
 
         server.quit()
 

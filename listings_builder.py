@@ -49,7 +49,7 @@ class ListingsBuilder:
                             "date_scraped": time.time()
                         }
                     })
-        print(colored("Raw lisitngs total: " + str(self.raw_listings_total), "green"))
+        print(colored("Raw lisitngs total: " + str(self.raw_listings_total), 'light_green'))
 
     def filter_out_keywords(self):
         filtered_out_count = 0
@@ -69,35 +69,28 @@ class ListingsBuilder:
                 filtered_out_count += 1
                 del self.new_listings[key]
     
-    def check_against_existing_listings(self):
-        lock = FileLock("listings.json.lock")
-        try:
-            with lock.acquire(timeout=10):
-                with open('listings.json', 'r') as file:
-                    existing_listings_store = json.load(file)
-
-        except (FileNotFoundError, Timeout) as e:
-            return e
-        
-        exisitng_listings_keys = set(existing_listings_store.keys())
-
-        for key, value in self.raw_listings.items():
-            if key not in exisitng_listings_keys:
-                self.new_listings.update({key: value})
-
     def update_existing_listings(self):
         lock = FileLock("listings.json.lock")
         try:
             with lock.acquire(timeout=10):
-                with open('listings.json', 'r', encoding='utf-8') as f:
-                    existing_listings = json.load(f)
+                with open('listings.json', 'r') as f:
+                    existing_listings_store = json.load(f)
+        except (FileNotFoundError, Timeout) as e:
+            existing_listings_store = {}
+            return e
+        
+        existing_listings_keys = set(existing_listings_store.keys())
 
-                existing_listings.update(self.new_listings)
+        for key, value in self.raw_listings.items():
+            if key not in existing_listings_keys:
+                self.new_listings.update({key: value})
+                existing_listings_store.update({key: value})
 
+        try:
+            with lock.acquire(timeout=10):
                 with open('listings.json', 'w', encoding='utf-8') as f:
-                    json.dump(existing_listings, f, ensure_ascii=False, indent=4)
-
-        except (FileNotFoundError, json.JSONDecodeError, Timeout) as e:
+                    json.dump(existing_listings_store, f, ensure_ascii=False, indent=4)
+        except FileNotFoundError as e:
             return e
 
     def remove_old_listings(self):
@@ -107,9 +100,10 @@ class ListingsBuilder:
                 with open('listings.json', 'r') as file:
                     existing_listings_store = json.load(file)
 
-                for key in list(existing_listings_store.keys()):
-                    if key not in self.raw_listings.keys():
-                        existing_listings_store.pop(key)
+                for key, value in existing_listings_store.items():
+                    if time.time() - value["date_scraped"] > 4 * 86400:
+                        del existing_listings_store[key]
+                        print(colored(f"Deleted {key}", 'red'))
 
                 with open('listings.json', 'w') as file:
                     json.dump(existing_listings_store, file, indent=4)

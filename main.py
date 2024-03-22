@@ -21,7 +21,7 @@ class Browser:
         self.name = name
         self.lock = file_lock
         self.browser_config = {
-            "headless": False,
+            "headless": True,
             "proxy": "royal_residential",
         }
 
@@ -76,6 +76,8 @@ class Browser:
             await browser.close()
 
 # ************START***************
-MAIN_THREAD = Browser("Main")
-asyncio.run(MAIN_THREAD.run())
+while True:
+    MAIN_THREAD = Browser("Main")
+    asyncio.run(MAIN_THREAD.run())
+    print(colored("==CYCLE COMPLETE==", 'grey'))
 # ********************************
