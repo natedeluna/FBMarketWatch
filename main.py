@@ -10,6 +10,7 @@ import json
 import asyncio
 import time
 from scrape_task import ScrapeTask
+from email_util import EmailDispatcher
 
 file_lock = Lock()
 
@@ -76,6 +77,7 @@ class Browser:
             await browser.close()
 
 # ************START***************
+# asyncio.run(EmailDispatcher().run())
 while True:
     MAIN_THREAD = Browser("Main")
     asyncio.run(MAIN_THREAD.run())

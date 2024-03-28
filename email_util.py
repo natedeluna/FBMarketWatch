@@ -8,29 +8,32 @@ from termcolor import colored
 
 load_dotenv()
 class EmailDispatcher:
-    def __init__(self, listings:dict):
+    def __init__(self, listings:dict=None):
         self.recipients = self.load_recipient_emails()
         self.listings = listings
-        self.email_body = self.generate_html_email()
+        self.email_body = None
     
     def load_recipient_emails(self) -> list:
-        lock = FileLock("recipients.txt.lock")
+        lock = FileLock("client_emails.txt.lock")
         try:
             with lock.acquire(timeout=10):
-                with open('recipients.txt', 'r') as file:
+                with open('client_emails.txt', 'r') as file:
                     return file.read().splitlines()
         except (Timeout, FileNotFoundError) as e:
             return []
 
     async def run(self):
+        self.generate_html_email()
+
         email_client_index = 0
-
         for recipient in self.recipients:
-            env_email_client_user = os.getenv(f"OUTLOOK_CLIENT_EMAIL{email_client_index}")
-            env_email_client_password = os.getenv(f"OUTLOOK_CLIENT_PASSWORD{email_client_index}")
+            email_client_user = os.getenv(f"OUTLOOK_CLIENT_EMAIL{email_client_index}")
+            email_client_password = os.getenv(f"OUTLOOK_CLIENT_PASSWORD{email_client_index}")
 
-            email_client_user = env_email_client_user if env_email_client_user else os.getenv(f"OUTLOOK_CLIENT_EMAIL{email_client_index-1}")
-            email_client_password = env_email_client_password if env_email_client_password else os.getenv(f"OUTLOOK_CLIENT_PASSWORD{email_client_index-1}")
+            if email_client_user is None:
+                email_client_index = 0
+                email_client_user = os.getenv(f"OUTLOOK_CLIENT_EMAIL{email_client_index}")
+                email_client_password = os.getenv(f"OUTLOOK_CLIENT_PASSWORD{email_client_index}")
 
             await self.send_email(
                 email_client_user,
@@ -47,7 +50,6 @@ class EmailDispatcher:
         email_client_password:str,
         email_recipient:str,
     ):  
-        print(f'Emailing{email_recipient} from {email_client_user}/ {email_client_password}')
         subject = f"New Facebook Marketplace Listing(s)"
         # Set up the SMTP server.
         smtp_server = "smtp-mail.outlook.com"
@@ -68,7 +70,6 @@ class EmailDispatcher:
         msg.add_header('Importance', 'High')
         msg.add_header('X-MSMail-Priority', 'High')
 
-
         # Send the email.
         server = smtplib.SMTP(smtp_server, port)
         server.starttls()
@@ -78,11 +79,18 @@ class EmailDispatcher:
         all_recipients = [msg['To']]
 
         res = server.sendmail(username, all_recipients, text)
-        print(colored(res, 'red'))
 
+        if res:
+            print(f"Failed to send email: {res}")
+
+        print(colored(f'{email_client_user} =>> {email_recipient} ::sent','blue'))
         server.quit()
 
     def generate_html_email(self):
+        if not self.listings:
+            self.email_body = """<h1>Helloooo</h1>"""
+            return
+
         body_html = ''
 
         for key,value in self.listings.items():
